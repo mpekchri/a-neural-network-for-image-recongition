@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <math.h>
 #include <fstream>
+#define num_of_pixels 784 
 
 using namespace std;
 
@@ -27,11 +28,11 @@ Network::Network(int numOfLayers, int* sizes) {
     for (int i = 0; i < numOfLayers; i++) {
         sizeOfLayers[i] = sizes[i];
     }
-    w = new double*[numOfLayers];
+    w = new double*[numOfLayers - 1];
     b = new double*[numOfLayers - 1];
     for (int i = 0; i < numOfLayers; i++) {
-        w[i] = new double[sizeOfLayers[i]];
-        for (int j = 0; j < sizeOfLayers[i]; j++) {
+        w[i] = new double[sizeOfLayers[i + 1]];
+        for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
             w[i][j] = getRandom(0, 1);
         }
     }
@@ -59,15 +60,17 @@ void Network::tries() {
     }
      */
 
-    double* a;
-    int y=0;
+    double *a,*y;
+    int y_int = 0;
     for (int i = 0; i < 1000; i++) {
-        a = read_tuple(i,&y);
+        a = read_tuple(i, &y_int);
         feedforward(&a);
-        int y_estimation = getOutput(a);
-        // cout<<"y is "<<y<<"\n";
-        // cout<<"y est is "<<y_estimation<<"\n";
-        cout<<"error is "<<y-y_estimation<<"\n";
+        y = transformOutput(y_int);
+        double error = 0;
+        for(int i=0; i<sizeOfLayers[numOfLayers-1]; i++){
+            error += pow((y[i] - a[i]),2); // y - y_estimation
+        }
+        cout<<"error is "<<error<<"\n";
         delete[] a;
     }
 
@@ -81,7 +84,7 @@ void Network::feedforward(double** a) {
     //double* res = new double[sizeOfLayers[numOfLayers-1]];
     for (int i = 0; i < numOfLayers - 1; i++) {
         double sum = 0;
-        for (int x = 0; x < sizeOfLayers[i]; x++) {
+        for (int x = 0; x < sizeOfLayers[i+1]; x++) {
             sum += (*a)[x] * w[i][x];
         }
         delete[] (*a);
@@ -106,7 +109,7 @@ int reverseInt(int i) {
     return ((int) c1 << 24) + ((int) c2 << 16) + ((int) c3 << 8) + c4;
 }
 
-    double* Network::read_tuple(int offset,int* y) {
+double* Network::read_tuple(int offset, int* y) {
     double* res = new double[(sizeOfLayers[0])];
     unsigned char* temp;
     // returns a tuple (x,y)
@@ -114,7 +117,7 @@ int reverseInt(int i) {
     // x is 784x1 array and it can be taken as &res[1]
 
     // return the label
-    const char* path_sec = "/home/christopher/Documents/__KALOKAIRI17__/pitsianhs/data/train-labels.idx1-ubyte";
+    const char* path_sec = "/home/chris/Documents/__KALOKAIRI17__/pitsianhs/data/train-labels.idx1-ubyte";
     ifstream file1(path_sec, ios::binary);
     int no_use = 0;
     file1.read((char *) &no_use, sizeof (no_use));
@@ -130,12 +133,11 @@ int reverseInt(int i) {
     }
     file1.read((char*) temp, 1);
     y[0] = (double) temp[0];
-    //cout<<res[0]<<"\n";
     delete[] temp;
     file1.close();
     // read the image
 
-    const char* path = "/home/christopher/Documents/__KALOKAIRI17__/pitsianhs/data/train-images.idx3-ubyte";
+    const char* path = "/home/chris/Documents/__KALOKAIRI17__/pitsianhs/data/train-images.idx3-ubyte";
     ifstream file(path, ios::binary);
     int imageSize = 0;
     int rows = 28, cols = 28;
@@ -148,7 +150,7 @@ int reverseInt(int i) {
     file.read((char *) &rows, sizeof (rows)), rows = reverseInt(rows);
     file.read((char *) &cols, sizeof (cols)), cols = reverseInt(cols);
     //imageSize = rows*cols;
-    imageSize = 784;
+    imageSize = num_of_pixels;
     temp = new unsigned char[imageSize];
     for (int i = 0; i < offset; i++) {
         file.read((char *) temp, imageSize);
@@ -166,14 +168,27 @@ int reverseInt(int i) {
     return res;
 }
 
-int Network::getOutput(double* out){
+/*
+int Network::getOutput(double* out) {
     int output = -1;
     double max = -1;
-    for(int i=0; i<sizeOfLayers[numOfLayers-1]; i++){
-        if(out[i]>max){
+    for (int i = 0; i < sizeOfLayers[numOfLayers - 1]; i++) {
+        if (out[i] > max) {
             max = out[i];
             output = i;
         }
     }
     return output;
+}
+*/
+
+double* Network::transformOutput(int output){
+    // transforms a singleton input (named output:int) into 
+    // a vector (named result:*double)
+    double* result = new double[this->sizeOfLayers[numOfLayers-1]];
+    for(int i=0; i<sizeOfLayers[numOfLayers-1]; i++){
+        result[i] = 0;
+    }
+    result[output] = 1;
+    return result;
 }

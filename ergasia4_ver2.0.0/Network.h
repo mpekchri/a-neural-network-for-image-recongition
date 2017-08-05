@@ -31,7 +31,8 @@ public:
     double sigmoid(double z);
     void feedforward(double** a);
     double* read_tuple(int offset,int* y);
-    int getOutput(double* out);
+    // int getOutput(double* out);
+    double* transformOutput(int output);
     
 private:
 
