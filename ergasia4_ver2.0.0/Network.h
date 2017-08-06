@@ -18,7 +18,8 @@ namespace std {
 
 class Network {
 private:
-    double **w,**b;
+    double **w,**b,**sigm_derivative,**delta,**alfa;
+    double **w_sum,**b_sum;
     int numOfLayers;
     int* sizeOfLayers;
 public:
@@ -33,9 +34,13 @@ public:
     double* read_tuple(int offset,int* y);
     // int getOutput(double* out);
     double* transformOutput(int output);
-    
-private:
-
+    double* sigmoid_derivative(double* sigmoid_result,int layers_id);
+    double* cost_derivative(double* a,double* y);
+    void backpropagate(double* d_L);
+    void train();
+    void gradient_descent();
+    void update_sums();
+    void reset_sums();
 };
 
 
