@@ -32,8 +32,7 @@ int main(int argc, char** argv) {
     Network* net = new Network(numOfLayers,sizes);
     delete[] sizes;
     
-    net->tries();
+    net->train(3.5);
     
     return 0;
 }
-
