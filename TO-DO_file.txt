@@ -1,0 +1,6 @@
+TO-DO :
+1. add a test() function which will use test dataset to check network's performance
+2. remove the current couts (they actually mean nothing since no test func excists)
+3. re-write parts of code in order code to become cache friendly
+4. re-write all functions that return pointers , so it won't be necessary to use new/delete the whole time
+5. dont forget to free the memory before exiting main
