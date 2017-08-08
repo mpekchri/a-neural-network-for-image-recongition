@@ -13,7 +13,7 @@
 #include "Network.h"
 #include <iostream>
 #include <cstdlib>
-#include <math.h>
+#include <cmath>
 #include <fstream>
 #define num_of_pixels 784 
 
@@ -28,45 +28,45 @@ Network::Network(int numOfLayers, int* sizes) {
     for (int i = 0; i < numOfLayers; i++) {
         sizeOfLayers[i] = sizes[i];
     }
-    w = new double*[numOfLayers - 1];
+    w = new double**[numOfLayers - 1];
     b = new double*[numOfLayers - 1];
-    sigm_derivative = new double*[numOfLayers - 1];
-    delta = new double*[numOfLayers];
+    sigm_derivative = new double*[numOfLayers];
     alfa = new double*[numOfLayers];
-    w_sum = new double*[numOfLayers - 1];
+    delta = new double*[numOfLayers];
+    w_sum = new double**[numOfLayers - 1];
     b_sum = new double*[numOfLayers - 1];
-    for (int i = 0; i < numOfLayers; i++) {
-        w[i] = new double[sizeOfLayers[i + 1]];
+    for (int i = 0; i < numOfLayers - 1; i++) {
+        w[i] = new double*[sizeOfLayers[i + 1]];
         for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
-            w[i][j] = getRandom(0, 1);
+            w[i][j] = new double[sizeOfLayers[i]];
+            for (int x = 0; x < sizeOfLayers[i]; x++) {
+                // w[i][j][x] = getRandom(0, 1);
+                w[i][j][x] = getRandom(-1, 1);
+            }
+        }
+    }
+    for (int i = 1; i < numOfLayers; i++) {
+        b[i - 1] = new double[sizeOfLayers[i]];
+        for (int j = 0; j < sizeOfLayers[i]; j++) {
+            // b[i - 1][j] = getRandom(0, 1);
+            b[i - 1][j] = getRandom(-1, 1);
         }
     }
     for (int i = 0; i < numOfLayers - 1; i++) {
-        b[i] = new double[sizeOfLayers[i + 1]];
+        w_sum[i] = new double*[sizeOfLayers[i + 1]];
         for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
-            b[i][j] = getRandom(0, 1);
+            w_sum[i][j] = new double[sizeOfLayers[i]];
+            for (int x = 0; x < sizeOfLayers[i]; x++) {
+                w_sum[i][j][x] = 0.0;
+            }
         }
     }
-    for (int i = 0; i < numOfLayers - 1; i++) {
-        sigm_derivative[i] = new double[sizeOfLayers[i + 1]];
-    }
-    for (int i = 0; i < numOfLayers; i++) {
-        alfa[i] = new double[sizeOfLayers[i]];
-    }
-    
-    for (int i = 0; i < numOfLayers - 1; i++) {
-        w_sum[i] = new double[sizeOfLayers[i + 1]];
-        for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
-            w_sum[i][j] = 0;
+    for (int i = 1; i < numOfLayers; i++) {
+        b_sum[i - 1] = new double[sizeOfLayers[i]];
+        for (int j = 0; j < sizeOfLayers[i]; j++) {
+            b_sum[i - 1][j] = 0.0;
         }
     }
-    for (int i = 0; i < numOfLayers - 1; i++) {
-        b_sum[i] = new double[sizeOfLayers[i + 1]];        
-        for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
-            b_sum[i][j] = 0;
-        }
-    }
-    
 }
 
 Network::Network(const Network& orig) {
@@ -74,6 +74,31 @@ Network::Network(const Network& orig) {
 }
 
 Network::~Network() {
+    // clean up memory
+    for (int i = 0; i < numOfLayers - 1; i++) {
+
+        for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
+            delete[] w[i][j];
+        }
+        delete[] w[i];
+    }
+    delete[] w;
+    for (int i = 1; i < numOfLayers; i++) {
+        delete[] b[i - 1];
+    }
+    delete[] b;
+    for (int i = 0; i < numOfLayers - 1; i++) {
+
+        for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
+            delete[] w_sum[i][j];
+        }
+        delete[] w_sum[i];
+    }
+    delete[] w_sum;
+    for (int i = 1; i < numOfLayers; i++) {
+        delete[] b_sum[i - 1];
+    }
+    delete[] b_sum;
 }
 
 double* hadamard_product(int size, double* a, double* b) {
@@ -87,17 +112,6 @@ double* hadamard_product(int size, double* a, double* b) {
     return result;
 }
 
-double* hadamard_product_singleton(int size, double a, double* b) {
-    // returns the datamard product for vectors a and b 
-    // (return a.*b in matlab)
-    // size = length of arrays a and b
-    double* result = new double[size];
-    for (int i = 0; i < size; i++) {
-        result[i] = a * b[i];
-    }
-    return result;
-}
-
 double vector_mult(int size, double* a, double* b) {
     double sum = 0;
     for (int i = 0; i < size; i++) {
@@ -106,31 +120,59 @@ double vector_mult(int size, double* a, double* b) {
     return sum;
 }
 
+double** vector_mult_specific(int a_s, int b_s, double* a, double* b) {
+    double** res = new double*[a_s];
+    double temp;
+    for (int i = 0; i < a_s; i++) {
+        res[i] = new double[b_s];
+        for (int j = 0; j < b_s; j++) {
+            res[i][j] = a[i] * b[j];
+        }
+    }
+    return res;
+}
+
 void vector_add(int size, double* a, double* b) {
     for (int i = 0; i < size; i++) {
         a[i] += b[i];
     }
 }
 
-void Network::tries() {
-    /*
-    cout<<numOfLayers<<"\n";
-    for(int i=0; i<numOfLayers; i++){
-        cout<<sizeOfLayers[i]<<" ";
+void matrix_add(int rows, int cols, double** a, double** b) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            a[i][j] += b[i][j];
+        }
     }
-     */
+}
 
+double* matrix_vector_mull(int cols, int rows, double** matrix, double* vector) {
+    // TESTED 
+    // returns "rows x 1" vector 
+    double* result = new double[rows];
+    for (int i = rows - 1; i >= 0; i--) {
+        result[i] = 0.0;
+    }
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            result[i] += matrix[i][j] * vector[j];
+        }
+    }
+    return result;
+}
+
+void Network::tries() {
     double *a, *y, *d_L, *cost;
     int y_int = 0;
     for (int i = 0; i < 1000; i++) {
         a = read_tuple(i, &y_int);
+
         feedforward(&a);
         y = transformOutput(y_int);
         // d_L = hadamard_product(sizeOfLayers[numOfLayers-1],cost_derivative(a,y),sigmoid_derivative(a,(numOfLayers-1)));
         // or
         cost = cost_derivative(alfa[numOfLayers - 1], y);
         d_L = hadamard_product(sizeOfLayers[numOfLayers - 1], cost, sigm_derivative[(numOfLayers - 1) - 1]);
-        cout << "new call\n";
         for (int i = 0; i < sizeOfLayers[numOfLayers - 1]; i++) {
             cout << "error is " << d_L[i] << "\n";
         }
@@ -144,26 +186,35 @@ double Network::sigmoid(double z) {
     return 1.0 / (1.0 + exp(-z));
 }
 
+void Network::sigmoid(double** z, int size) {
+    for (int i = 0; i < size; i++) {
+        // (*z)[i] = 1.0 / (1.0 + exp(-(*z)[i]));
+        (*z)[i] = sigmoid((*z)[i]);
+    }
+}
+
 void Network::feedforward(double** a) {
-    //double* res = new double[sizeOfLayers[numOfLayers-1]];
-    alfa[0] = *a;
+    //double* vec_a_w;
+    alfa[0] = a[0];
+    double* sigm = new double[sizeOfLayers[0]];
+    for (int i = 0; i < sizeOfLayers[0]; i++) {
+        sigm[i] = alfa[0][i];
+    }
+    sigmoid(&sigm, sizeOfLayers[0]);
+    sigm_derivative[0] = sigmoid_derivative(sigm, 0);
+    delete[] sigm;
     for (int i = 0; i < numOfLayers - 1; i++) {
-        double sum = 0;
-        for (int x = 0; x < sizeOfLayers[i + 1]; x++) {
-            sum += alfa[i][x] * w[i][x];
-        }
-        //delete[] (*a);
-        //(*a) = new double[sizeOfLayers[i + 1]];
-        for (int x = 0; x < sizeOfLayers[i + 1]; x++) {
-            alfa[i + 1][x] = sigmoid(sum + b[i][x]);
-        }
-        sigm_derivative[i] = sigmoid_derivative(alfa[i + 1], i + 1);
+        alfa[i + 1] = matrix_vector_mull(sizeOfLayers[i], sizeOfLayers[i + 1], w[i], alfa[i]);
+        vector_add(sizeOfLayers[i + 1], alfa[i + 1], b[i]); // result is stored in vec_a_w
+        sigmoid(&alfa[i + 1], sizeOfLayers[i + 1]);
+        sigm_derivative[i + 1] = sigmoid_derivative(alfa[i + 1], i + 1);
     }
     // return (*a);
 }
 
 double Network::getRandom(int min, int max) {
-    return floor(((max - min) * ((double) rand() / (double) RAND_MAX) + min)*100) / 100;
+    return (((max - min) * ((double) rand() / (double) RAND_MAX) + min)*100) / 100;
+    // return floor(((max - min) * ((double) rand() / (double) RAND_MAX) + min)*100) / 100;
 }
 
 int reverseInt(int i) {
@@ -223,7 +274,8 @@ double* Network::read_tuple(int offset, int* y) {
     }
     file.read((char *) temp, imageSize);
     for (int i = 0; i < imageSize; i++) {
-        res[i] = (double) (((int) (temp[i])) / (double) 255);
+        res[i] = (double) (((int) (temp[i])) / (double) 255.0);
+        //res[i] = (double) (((int) (temp[i])) / (double) 1);
         //cout << res[i] << " ";
     }
     delete[] temp;
@@ -234,28 +286,14 @@ double* Network::read_tuple(int offset, int* y) {
     return res;
 }
 
-/*
-int Network::getOutput(double* out) {
-    int output = -1;
-    double max = -1;
-    for (int i = 0; i < sizeOfLayers[numOfLayers - 1]; i++) {
-        if (out[i] > max) {
-            max = out[i];
-            output = i;
-        }
-    }
-    return output;
-}
- */
-
 double* Network::transformOutput(int output) {
     // transforms a singleton input (named output:int) into 
     // a vector (named result:*double)
     double* result = new double[this->sizeOfLayers[numOfLayers - 1]];
     for (int i = 0; i < sizeOfLayers[numOfLayers - 1]; i++) {
-        result[i] = 0;
+        result[i] = 0.0;
     }
-    result[output] = 1;
+    result[output] = 1.0;
     return result;
 }
 
@@ -285,73 +323,143 @@ double* Network::cost_derivative(double* a, double* y) {
     return result;
 }
 
-void Network::train() {
-    int epochs = 40000; // number of different inputs that will be used to train our network
-    int batch_size = 40;
+int percentage_count(int* percentage,int start,int end){
+    int result = 0;
+    for(int i=start; i<end; i++){
+        result += percentage[i];
+    }
+    return result;
+}
+
+void Network::train(double learning_rate) {
+    int epochs = 60000; // number of different inputs that will be used to train our network
+    int batch_size = 10;
+    int offset = 0;
     double *a, *y, *d_L, *cost;
     int y_int = 0;
-    for (int ep = 0; ep < epochs; ep += batch_size) {
+    int* percentage = new int[epochs];
+    for (int ep = offset; ep < offset + epochs; ep += (batch_size)) {
+        //pososto = 0;
         for (int b = 0; b < batch_size; b++) {
-            a = read_tuple(ep + b, &y_int);
+            //a = read_tuple(ep + b, &y_int);
+            a = read_tuple(ep+b, &y_int);
             feedforward(&a);
             y = transformOutput(y_int);
             cost = cost_derivative(alfa[numOfLayers - 1], y);
-            d_L = hadamard_product(sizeOfLayers[numOfLayers - 1], cost, sigm_derivative[(numOfLayers - 1) - 1]);
+            d_L = hadamard_product(sizeOfLayers[numOfLayers - 1], cost, sigm_derivative[numOfLayers - 1]);
             backpropagate(d_L);
-            cerr<<"ftanw edw ";
             update_sums();
-            cerr<<"den ftanw edw ";
+            percentage[ep+b] = (int) getError(alfa[numOfLayers-1], y_int);
+            //debug();
             delete[] cost;
-            delete[] a;
+            delete[] y;
+            for (int i = 0; i < numOfLayers; i++) {
+                delete[] alfa[i];
+                delete[] sigm_derivative[i];
+                delete[] delta[i];
+            }
         }
-        gradient_descent();
+        // cerr << "epoch " << ep + batch_size << " with ratio " << (1 - (double) pososto / (double) batch_size)*100 << " % \n";
+        gradient_descent(learning_rate, batch_size);
         reset_sums();
     }
-    
+    int p0 = percentage_count(percentage,0,epochs/4);
+    cout <<"number of training data used :                          "<<epochs<<"\n";
+    cout <<"learning rate used :                                    "<<learning_rate<<"\n";
+    cout <<"batch size used :                                       "<<batch_size<<"\n";
+    cout <<"percentage of correct anwsers in 0 until 25 % is        " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    p0 = percentage_count(percentage,epochs/4,epochs/2);
+    cout <<"percentage of correct anwsers in 25 until 50 % is       " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    p0 = percentage_count(percentage,epochs/2,epochs/(100/75));
+    cout <<"percentage of correct anwsers in 50 until 75 % is       " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    p0 = percentage_count(percentage,epochs/(100/75),epochs);
+    cout <<"percentage of correct anwsers in 75 until the end is    " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    delete[] percentage;
 }
 
-void Network::gradient_descent() {
+void Network::gradient_descent(double learning_rate, int batch_size) {
+    // update w and b according to w_sum and b_sum
     for (int i = 0; i < numOfLayers - 1; i++) {
-        for (int j = 0; j < sizeOfLayers[i]; j++) {
-            w[i][j] += w_sum[i][j];
+        for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
+            for (int x = 0; x < sizeOfLayers[i]; x++) {
+                w[i][j][x] -= learning_rate * (1 / batch_size) * w_sum[i][j][x];
+            }
         }
+        //cerr<<"w sum "<<w_sum[i][0][0]<<" -- ";
+        //cerr<<"w "<<w[i][0][0]<<" \n";
     }
-    for (int i = 0; i < numOfLayers - 1; i++) {
+    for (int i = 1; i < numOfLayers; i++) {
         for (int j = 0; j < sizeOfLayers[i]; j++) {
-            b[i][j] += b_sum[i][j];
+            b[i - 1][j] -= learning_rate * (1 / batch_size) * b_sum[i - 1][j];
         }
     }
 }
 
 void Network::update_sums() {
-    for (int i = 1; i < numOfLayers; i++) {
-        vector_add(sizeOfLayers[i - 1], w_sum[i], hadamard_product(sizeOfLayers[i - 1], delta[i], alfa[i - 1]));
-        vector_add(sizeOfLayers[i - 1], b_sum[i], delta[i]);
+    double** mul;
+    for (int i = 0; i < numOfLayers - 1; i++) {
+        mul = vector_mult_specific(sizeOfLayers[i + 1], sizeOfLayers[i], delta[i + 1], alfa[i]);
+        matrix_add(sizeOfLayers[i + 1], sizeOfLayers[i], w_sum[i], mul);
+        for(int k=0; k<sizeOfLayers[i + 1]; k++){
+            //cerr<<sizeOfLayers[i+1]<<" "<<k<<"\n";
+            delete[] mul[k];
+        }
+        delete[] mul;
+    }
+    for (int i = 0; i < numOfLayers - 1; i++) {
+        vector_add(sizeOfLayers[i + 1], b_sum[i], delta[i + 1]);
     }
 }
 
 void Network::reset_sums() {
     for (int i = 0; i < numOfLayers - 1; i++) {
-        w_sum[i] = new double[sizeOfLayers[i]];
         for (int j = 0; j < sizeOfLayers[i + 1]; j++) {
-            w_sum[i][j] = 0;
+            for (int x = 0; x < sizeOfLayers[i]; x++) {
+                w_sum[i][j][x] = 0.0;
+            }
         }
     }
-    for (int i = 0; i < numOfLayers - 1; i++) {
-        b_sum[i] = new double[sizeOfLayers[i + 1]];
+    for (int i = 1; i < numOfLayers; i++) {
         for (int j = 0; j < sizeOfLayers[i]; j++) {
-            b_sum[i][j] = 0;
+            b_sum[i - 1][j] = 0.0;
         }
     }
 }
 
 void Network::backpropagate(double* d_L) {
     delta[numOfLayers - 1] = d_L;
-    for (int i = (numOfLayers - 1) - 1; i >= 0; i--) {
+    double* w_d;
+    for (int i = numOfLayers - 2; i >= 0; i--) {
         // δx,l=((wl+1)Tδx,l+1)⊙σ′(zx,l)
-        // remember : delta[i] is a *double pointer
-        delta[i] = hadamard_product_singleton(sizeOfLayers[i + 1], vector_mult(sizeOfLayers[i + 1], w[i + 1], delta[i + 1]), sigm_derivative[i]);
+        w_d = matrix_vector_mull(sizeOfLayers[i + 1], sizeOfLayers[i + 2], w[i], delta[i + 1]);
+        delta[i] = hadamard_product(sizeOfLayers[i + 1], w_d, sigm_derivative[i]);
+        delete[] w_d;
     }
 
 }
 
+void Network::debug(){
+    for (int i = 0; i < 10; i++) {
+        cerr<<"lotse is "<<alfa[2][i]<<" \n";
+    }
+}
+
+double Network::getError(double* y_est, int y) {
+    // returns 1 if it was error
+    // 0 if it was correct
+    
+    double max = -1;
+    int pos = -1;
+    for (int i = 0; i < 10; i++) {
+        if (y_est[i] > max) {
+            max = y_est[i];
+            pos = i;
+        }
+    }
+    
+    if (y == pos) {
+        return 0.0;
+    } else {
+        return 1.0;
+    }
+}

@@ -18,8 +18,9 @@ namespace std {
 
 class Network {
 private:
-    double **w,**b,**sigm_derivative,**delta,**alfa;
-    double **w_sum,**b_sum;
+    double ***w;
+    double **b,**sigm_derivative,**delta,**alfa;
+    double ***w_sum,**b_sum;
     int numOfLayers;
     int* sizeOfLayers;
 public:
@@ -30,17 +31,19 @@ public:
     void tries();
     double getRandom(int min,int max);
     double sigmoid(double z);
+    void sigmoid(double** z,int size);
     void feedforward(double** a);
     double* read_tuple(int offset,int* y);
-    // int getOutput(double* out);
     double* transformOutput(int output);
     double* sigmoid_derivative(double* sigmoid_result,int layers_id);
     double* cost_derivative(double* a,double* y);
     void backpropagate(double* d_L);
-    void train();
-    void gradient_descent();
+    void train(double learning_rate);
+    void gradient_descent(double learning_rate,int batch_size);
     void update_sums();
     void reset_sums();
+    double getError(double* y_est,int y);
+    void debug();
 };
 
 
