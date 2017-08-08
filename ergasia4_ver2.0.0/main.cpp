@@ -19,10 +19,25 @@
 
 using namespace std;
 
+
+double* matrix_vector_mulla(int cols, int rows, double** matrix, double* vector) {
+    double* result = new double[rows];
+    for (int i = rows - 1; i >= 0; i--) {
+        result[i] = 0;
+    }
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            result[i] += matrix[i][j] * vector[j];
+        }
+    }
+    return result;
+}
+
 /*
  * 
  */
 int main(int argc, char** argv) {
+    
     int numOfLayers = 3;
     int* sizes = new int[3];
     sizes[0] = 784;
@@ -32,7 +47,7 @@ int main(int argc, char** argv) {
     Network* net = new Network(numOfLayers,sizes);
     delete[] sizes;
     
-    net->train(3.5);
+    net->train(20.3);
     
     return 0;
 }

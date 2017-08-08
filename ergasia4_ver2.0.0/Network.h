@@ -39,10 +39,11 @@ public:
     double* cost_derivative(double* a,double* y);
     void backpropagate(double* d_L);
     void train(double learning_rate);
-    void gradient_descent(double learning_rate);
+    void gradient_descent(double learning_rate,int batch_size);
     void update_sums();
     void reset_sums();
     double getError(double* y_est,int y);
+    void debug();
 };
 
 
