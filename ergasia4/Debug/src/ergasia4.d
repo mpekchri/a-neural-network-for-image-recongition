@@ -188,4 +188,5 @@ src/ergasia4.o : ../src/ergasia4.cu \
     /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
     /usr/include/x86_64-linux-gnu/bits/environments.h \
     /usr/include/x86_64-linux-gnu/bits/confname.h \
-    /usr/include/getopt.h
+    /usr/include/getopt.h \
+    /usr/include/x86_64-linux-gnu/sys/time.h

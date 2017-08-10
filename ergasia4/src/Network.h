@@ -45,6 +45,9 @@ public:
     int getLayersSize(int i) {return this->sizeOfLayers[i];}
     double* getDelta(int i) {return delta[i];}
     double* getSigmDerivative(int i) {return sigm_derivative[i];}
+    void set_delta(int i,double* d){delta[i] = d;}
+    double** getW(int i) {return w[i];}
+    double* matrix_vector_mull(int cols, int rows, double** matrix, double* vector);
 };
 
 

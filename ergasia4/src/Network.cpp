@@ -143,7 +143,7 @@ void matrix_add(int rows, int cols, double** a, double** b) {
     }
 }
 
-double* matrix_vector_mull(int cols, int rows, double** matrix, double* vector) {
+double* Network::matrix_vector_mull(int cols, int rows, double** matrix, double* vector) {
     // TESTED
     // returns "rows x 1" vector
     double* result = new double[rows];
