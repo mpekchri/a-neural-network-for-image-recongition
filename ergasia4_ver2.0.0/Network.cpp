@@ -149,13 +149,13 @@ void matrix_add(int rows, int cols, double** a, double** b) {
 double* matrix_vector_mull(int cols, int rows, double** matrix, double* vector) {
     // TESTED 
     // returns "rows x 1" vector 
-    double* result = new double[rows];
-    for (int i = rows - 1; i >= 0; i--) {
+    double* result = new double[cols];
+    for (int i = cols - 1; i >= 0; i--) {
         result[i] = 0.0;
     }
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            result[i] += matrix[i][j] * vector[j];
+    for (int j = 0; j < cols; j++) {
+        for (int i = 0; i < rows; i++) {
+            result[j] += matrix[i][j] * vector[i];
         }
     }
     return result;
@@ -205,7 +205,7 @@ void Network::feedforward(double** a) {
     delete[] sigm;
     for (int i = 0; i < numOfLayers - 1; i++) {
         alfa[i + 1] = matrix_vector_mull(sizeOfLayers[i], sizeOfLayers[i + 1], w[i], alfa[i]);
-        vector_add(sizeOfLayers[i + 1], alfa[i + 1], b[i]); // result is stored in vec_a_w
+        vector_add(sizeOfLayers[i + 1], alfa[i + 1], b[i]); // result is stored in alfa[i+1]
         sigmoid(&alfa[i + 1], sizeOfLayers[i + 1]);
         sigm_derivative[i + 1] = sigmoid_derivative(alfa[i + 1], i + 1);
     }
@@ -323,17 +323,17 @@ double* Network::cost_derivative(double* a, double* y) {
     return result;
 }
 
-int percentage_count(int* percentage,int start,int end){
+int percentage_count(int* percentage, int start, int end) {
     int result = 0;
-    for(int i=start; i<end; i++){
+    for (int i = start; i < end; i++) {
         result += percentage[i];
     }
     return result;
 }
 
 void Network::train(double learning_rate) {
-    int epochs = 60000; // number of different inputs that will be used to train our network
-    int batch_size = 10;
+    int epochs = 10000; // number of different inputs that will be used to train our network
+    int batch_size = 1;
     int offset = 0;
     double *a, *y, *d_L, *cost;
     int y_int = 0;
@@ -342,14 +342,14 @@ void Network::train(double learning_rate) {
         //pososto = 0;
         for (int b = 0; b < batch_size; b++) {
             //a = read_tuple(ep + b, &y_int);
-            a = read_tuple(ep+b, &y_int);
+            a = read_tuple(ep + b, &y_int);
             feedforward(&a);
             y = transformOutput(y_int);
             cost = cost_derivative(alfa[numOfLayers - 1], y);
             d_L = hadamard_product(sizeOfLayers[numOfLayers - 1], cost, sigm_derivative[numOfLayers - 1]);
             backpropagate(d_L);
             update_sums();
-            percentage[ep+b] = (int) getError(alfa[numOfLayers-1], y_int);
+            percentage[ep + b] = (int) getError(alfa[numOfLayers - 1], y_int);
             //debug();
             delete[] cost;
             delete[] y;
@@ -363,17 +363,17 @@ void Network::train(double learning_rate) {
         gradient_descent(learning_rate, batch_size);
         reset_sums();
     }
-    int p0 = percentage_count(percentage,0,epochs/4);
-    cout <<"number of training data used :                          "<<epochs<<"\n";
-    cout <<"learning rate used :                                    "<<learning_rate<<"\n";
-    cout <<"batch size used :                                       "<<batch_size<<"\n";
-    cout <<"percentage of correct anwsers in 0 until 25 % is        " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
-    p0 = percentage_count(percentage,epochs/4,epochs/2);
-    cout <<"percentage of correct anwsers in 25 until 50 % is       " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
-    p0 = percentage_count(percentage,epochs/2,epochs/(100/75));
-    cout <<"percentage of correct anwsers in 50 until 75 % is       " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
-    p0 = percentage_count(percentage,epochs/(100/75),epochs);
-    cout <<"percentage of correct anwsers in 75 until the end is    " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    int p0 = percentage_count(percentage, 0, epochs / 4);
+    cout << "number of training data used :                          " << epochs << "\n";
+    cout << "learning rate used :                                    " << learning_rate << "\n";
+    cout << "batch size used :                                       " << batch_size << "\n";
+    cout << "percentage of correct anwsers in 0 until 25 % is        " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    p0 = percentage_count(percentage, epochs / 4, epochs / 2);
+    cout << "percentage of correct anwsers in 25 until 50 % is       " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    p0 = percentage_count(percentage, epochs / 2, epochs / (100 / 75));
+    cout << "percentage of correct anwsers in 50 until 75 % is       " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
+    p0 = percentage_count(percentage, epochs / (100 / 75), epochs);
+    cout << "percentage of correct anwsers in 75 until the end is    " << (1 - (double) p0 / (double) epochs)*25 << " % \n";
     delete[] percentage;
 }
 
@@ -400,7 +400,7 @@ void Network::update_sums() {
     for (int i = 0; i < numOfLayers - 1; i++) {
         mul = vector_mult_specific(sizeOfLayers[i + 1], sizeOfLayers[i], delta[i + 1], alfa[i]);
         matrix_add(sizeOfLayers[i + 1], sizeOfLayers[i], w_sum[i], mul);
-        for(int k=0; k<sizeOfLayers[i + 1]; k++){
+        for (int k = 0; k < sizeOfLayers[i + 1]; k++) {
             //cerr<<sizeOfLayers[i+1]<<" "<<k<<"\n";
             delete[] mul[k];
         }
@@ -431,23 +431,23 @@ void Network::backpropagate(double* d_L) {
     double* w_d;
     for (int i = numOfLayers - 2; i >= 0; i--) {
         // δx,l=((wl+1)Tδx,l+1)⊙σ′(zx,l)
-        w_d = matrix_vector_mull(sizeOfLayers[i + 1], sizeOfLayers[i + 2], w[i], delta[i + 1]);
-        delta[i] = hadamard_product(sizeOfLayers[i + 1], w_d, sigm_derivative[i]);
+        w_d = matrix_vector_mull(sizeOfLayers[i], sizeOfLayers[i + 1], w[i], delta[i + 1]);
+        delta[i] = hadamard_product(sizeOfLayers[i], w_d, sigm_derivative[i]);
         delete[] w_d;
     }
 
 }
 
-void Network::debug(){
+void Network::debug() {
     for (int i = 0; i < 10; i++) {
-        cerr<<"lotse is "<<alfa[2][i]<<" \n";
+        cerr << "axx is " << alfa[2][i] << " \n";
     }
 }
 
 double Network::getError(double* y_est, int y) {
     // returns 1 if it was error
     // 0 if it was correct
-    
+
     double max = -1;
     int pos = -1;
     for (int i = 0; i < 10; i++) {
@@ -456,7 +456,7 @@ double Network::getError(double* y_est, int y) {
             pos = i;
         }
     }
-    
+
     if (y == pos) {
         return 0.0;
     } else {
