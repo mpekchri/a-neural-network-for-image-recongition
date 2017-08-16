@@ -226,7 +226,7 @@ int reverseInt(int i) {
     return ((int) c1 << 24) + ((int) c2 << 16) + ((int) c3 << 8) + c4;
 }
 
-double* Network::read_tuple(int offset, int* y) {
+double* Network::read_tuple(int offset, int* y) {   //int osffset now is the NUMBER of the requested item starting from 0
     double* res = new double[(sizeOfLayers[0])];
     unsigned char* temp;
     // returns a tuple (x,y)
@@ -245,9 +245,7 @@ double* Network::read_tuple(int offset, int* y) {
     file1.read((char *) &no_use, sizeof (no_use));
     no_use = reverseInt(no_use); // total num of labels
     temp = new unsigned char[1];
-    for (int i = 0; i < offset; i++) {
-        file1.read((char*) temp, 1);
-    }
+    file1.seekg(8+offset);
     file1.read((char*) temp, 1);
     y[0] = (double) temp[0];
     delete[] temp;
@@ -269,9 +267,7 @@ double* Network::read_tuple(int offset, int* y) {
     //imageSize = rows*cols;
     imageSize = num_of_pixels;
     temp = new unsigned char[imageSize];
-    for (int i = 0; i < offset; i++) {
-        file.read((char *) temp, imageSize);
-    }
+    file.seekg(16 + offset*num_of_pixels);
     file.read((char *) temp, imageSize);
     for (int i = 0; i < imageSize; i++) {
         res[i] = (double) (((int) (temp[i])) / (double) 255.0);
