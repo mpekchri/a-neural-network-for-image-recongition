@@ -18,16 +18,17 @@ namespace std {
 
 class Network {
 private:
-    double ***w;
+    double **w;
     double **b,**sigm_derivative,**delta,**alfa;
-    double ***w_sum,**b_sum;
-    int numOfLayers;
-    int* sizeOfLayers;
+    double **c_w,**c_b;
+    int num_of_layers;
+    int* s;     // size of layers
 public:
     Network();
     Network(int numOfLayers,int* sizes);
     Network(const Network& orig);
     virtual ~Network();
+    void initiallization();
     void tries();
     double getRandom(int min,int max);
     double sigmoid(double z);
@@ -35,15 +36,16 @@ public:
     void feedforward(double** a);
     double* read_tuple(int offset,int* y);
     double* transformOutput(int output);
-    double* sigmoid_derivative(double* sigmoid_result,int layers_id);
     double* cost_derivative(double* a,double* y);
     void backpropagate(double* d_L);
     void train(double learning_rate);
     void gradient_descent(double learning_rate,int batch_size);
     void update_sums();
     void reset_sums();
-    double getError(double* y_est,int y);
+    int getError(double* y_est,int y);
     void debug();
+    void compute_cost_w_derivative() ;
+    void compute_cost_b_derivative() ;
 };
 
 
