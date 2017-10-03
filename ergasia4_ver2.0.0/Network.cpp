@@ -169,15 +169,14 @@ void Network::feedforward(double** a) {
     for (int i = 1; i < num_of_layers; i++) {
         alfa[i] = compute_z(alfa[i - 1], w[i], b[i], s[i - 1], s[i]);
         sigmoid(&alfa[i], s[i]);
-
         compute_sigm_der(alfa[i], sigm_derivative[i], s[i]);
     }
     /*
     for (int x = 0; x < 10; x++) {
-        cout << alfa[2][x] << " ";
+        cout << b[1][x] << " ";
     }
     cout << "\n";
-     * */
+    */
 }
 
 int reverseInt(int i) {
@@ -194,9 +193,9 @@ double* Network::transformOutput(int output) {
     // a vector (named result:*double)
     double* result = new double[this->s[num_of_layers - 1]];
     for (int i = 0; i < s[num_of_layers - 1]; i++) {
-        result[i] = 1.0;
+        result[i] = 0;
     }
-    result[output] = 0.0;
+    result[output] = 1;
     return result;
 }
 
@@ -222,8 +221,7 @@ void Network::train(double learning_rate) {
     int batch_size = 100;
     int offset = 0;
     double *a, *y, *d_L, *cost;
-    int y_int = 0;
-    int percentage = 0;
+    int y_int = 0;    
     for (int ep = offset; ep < offset + epochs; ep += (batch_size)) {
         reset_sums();
         for (int b = 0; b < batch_size; b++) {
@@ -234,29 +232,31 @@ void Network::train(double learning_rate) {
             d_L = hadamard_product(s[num_of_layers - 1], cost, sigm_derivative[num_of_layers - 1]);
             backpropagate(d_L);
             update_sums();
-            //debug();
+            debug();
         }
         gradient_descent(learning_rate, batch_size);
     }
     // check
-    for(int i=epochs; i<epochs+1000; i++){
+    int check_size = 100;
+    int percentage = 0;
+    for(int i=epochs; i<epochs+check_size; i++){
         a = read_tuple(i, &y_int);
         feedforward(&a);
         y = transformOutput(y_int);
-        percentage += (int) getError(alfa[num_of_layers - 1], y_int);
+        percentage += getError(alfa[num_of_layers - 1],y, y_int);
     }
-    cout << "percentage of correct anwsers is " << (1-percentage/(double)1000)*100 << " % \n";
+    cout << "percentage of correct anwsers is " << (1-percentage/(double)check_size)*100 << " % \n";
 }
 
 void Network::gradient_descent(double learning_rate, int batch_size) {
     for (int i = 1; i < num_of_layers; i++) {
         for (int j = 0; j < s[i] * s[i - 1]; j++) {
-            w[i][j] += learning_rate * (1 / batch_size) * c_w[i][j];
+            w[i][j] = w[i][j] + learning_rate * ((double) (1 / (double) batch_size)) * c_w[i][j];
         }
     }
     for (int i = 1; i < num_of_layers; i++) {
         for (int j = 0; j < s[i]; j++) {
-            b[i][j] += learning_rate * (1 / batch_size) * c_b[i][j];
+            b[i][j] = b[i][j] + learning_rate * ((double) (1 / (double) batch_size)) * c_b[i][j];
         }
     }
 }
@@ -287,13 +287,7 @@ void Network::compute_cost_w_derivative() {
     double* temp;
     for (int i = 1; i < num_of_layers; i++) {
         temp = vector_mult(alfa[i - 1], delta[i], s[i - 1], s[i]);
-        /*
-        for (int j = 0; j < s[i] * s[i - 1]; j++) {
-            if (temp[j] != 0) {
-                //cout << "what " << temp[j] << "\n";
-            }
-        }
-         * */
+       
         vector_add(s[i - 1] * s[i], c_w[i], temp);
         delete[] temp;
     }
@@ -328,20 +322,20 @@ void Network::debug() {
 
 }
 
-int Network::getError(double* y_est, int y) {
+int Network::getError(double* y_est, double* y,int y_val) {
     // returns 1 if it was error
     // 0 if it was correct
-
-    int min = 2;
-    int pos = -1;
-    for (int i = 0; i < s[num_of_layers - 1]; i++) {
-        if (y_est[i] <= min) {
-            min = y_est[i];
+    int pos = 0;
+    double min = pow(y[0]-y_est[0],2);
+    for(int i=1; i<10; i++){
+        //cout << pow(y[i]-y_est[i],2) <<" \n";
+        if(pow(y[i]-y_est[i],2)<min){
             pos = i;
+            min = pow(y[i]-y_est[i],2);
         }
     }
-    //cout << y << " " << pos << "\n";
-    if (y == pos) {
+    cout << y_val << " " << pos << "\n";
+    if (y_val == pos) {
         return 0;
     } else {
         return 1;
@@ -411,12 +405,12 @@ double* Network::read_tuple(int offset, int* y) {
 void Network::initiallization() {
     for (int i = 1; i < num_of_layers; i++) {
         for (int j = 0; j < s[i]; j++) {
-            b[i][j] = this->getRandom(-1, 1);
+            b[i][j] = this->getRandom(-10, 10);
         }
     }
     for (int i = 1; i < num_of_layers; i++) {
         for (int j = 0; j < s[i - 1] * s[i]; j++) {
-            w[i][j] = this->getRandom(-1, 1);
+            w[i][j] = this->getRandom(-10, 10);
         }
     }
 }

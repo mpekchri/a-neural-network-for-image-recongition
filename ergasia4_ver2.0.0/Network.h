@@ -42,7 +42,7 @@ public:
     void gradient_descent(double learning_rate,int batch_size);
     void update_sums();
     void reset_sums();
-    int getError(double* y_est,int y);
+    int getError(double* y_est, double* y,int y_val);
     void debug();
     void compute_cost_w_derivative() ;
     void compute_cost_b_derivative() ;
